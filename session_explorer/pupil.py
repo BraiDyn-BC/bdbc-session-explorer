@@ -57,6 +57,7 @@ def fit_pupil(
     )
     return pupilpath
 
+
 def process_eye_file(
     eyefile: Path,
     pupilfile: Path,
@@ -79,3 +80,4 @@ def process_eye_file(
 
 def find_pupil_output_dir(session: _core.Session, pupilroot: Path) -> Path:
     return pupilroot / f"{session.date}_{session.animal}"
+

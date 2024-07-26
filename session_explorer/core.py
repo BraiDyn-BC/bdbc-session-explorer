@@ -20,8 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Literal
+from typing import Literal, Union
 from typing_extensions import Self
+from pathlib import Path
 from collections import namedtuple as _namedtuple
 from datetime import datetime as _datetime
 import sys as _sys
@@ -29,7 +30,7 @@ import warnings as _warnings
 
 import rawdata_explorer as _rawx
 
-
+PathLike = Union[str, Path]
 ErrorHandling = Literal['ignore', 'warn', 'error']
 
 
@@ -51,14 +52,19 @@ class SessionExplorationWarning(UserWarning):
     pass
 
 
-def handle_error(msg, type: ErrorHandling = 'warn'):
+def handle_error(
+    msg,
+    type: ErrorHandling = 'warn',
+    errorcls: type = SessionExplorationError,
+    warncls: type = SessionExplorationWarning,
+):
     if type == 'ignore':
         return
     elif type == 'warn':
-        _warnings.warn(msg, category=SessionExplorationWarning, stacklevel=2)
+        _warnings.warn(msg, category=warncls, stacklevel=3)
         return
     elif type == 'error':
-        raise SessionExplorationError(msg)
+        raise errorcls(msg)
     else:
         raise ValueError(f'unexpected error handling type: {type}')
 
@@ -71,10 +77,22 @@ class Session(_namedtuple('Session', ('batch', 'animal', 'date', 'type'))):
     def longdate(self) -> str:
         return _datetime.strptime(self.date, self.FMT_SHORT_DATE).strftime(self.FMT_LONG_DATE)
 
+    @property
+    def base(self) -> str:
+        if self.type == 'task':
+            return f"{self.date}_{self.animal}"
+        else:
+            return f"{self.date}_{self.animal}_{self.type}"
+
     @classmethod
     def from_rawdata(cls, raw: _rawx.RawData) -> Self:
         return cls(**dict((key, getattr(raw, key)) for key in cls._fields))
 
+    def metadata(self) -> Dict[str, str]:
+        return {
+            'batch': self.batch,
+            'animal': self.animal,
+            'date': self.date,
+            'type': self.type,
+        }
 
-def session_from_rawdata(raw: _rawx.RawData) -> Session:
-    return Session.from_rawdata(raw)

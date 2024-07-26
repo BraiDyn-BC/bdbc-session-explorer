@@ -24,21 +24,26 @@ from importlib import reload as _reload
 
 from . import (
     core,
+    rawdata,
     videos,
     dlc,
     pupil,
 )
 
 _reload(core)
+_reload(rawdata)
 _reload(videos)
 _reload(dlc)
 _reload(pupil)
 
 Session = core.Session
+RawData = rawdata.RawData
 VideoFiles = videos.VideoFiles
 DLCOutputFiles = dlc.DLCOutputFiles
 
-session_from_rawdata = core.session_from_rawdata
+iterate_rawdata = rawdata.iterate_rawdata
+collect_rawdata_by_animal = rawdata.collect_rawdata_by_animal
 video_files_from_session = videos.video_files_from_session
 dlc_output_files_from_session = dlc.dlc_output_files_from_session
 fit_pupil = pupil.fit_pupil
+
