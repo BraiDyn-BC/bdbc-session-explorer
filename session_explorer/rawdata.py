@@ -146,7 +146,7 @@ def collect_rawdata_by_animal(
     batch: Optional[Union[str, Iterable[str]]] = None,
     animal: Optional[Union[str, Iterable[str]]] = None,
     file_version: RawFileVersion = 'v1',
-    error_handling: ErrorHandling = 'warn',
+    error_handling: _core.ErrorHandling = 'warn',
 ) -> Dict[str, Tuple[RawData]]:
     def _filter(sessions):
         yield from filter_rawdata_by_animal(filter_rwadata_by_batch(sessions, batch), animal)
@@ -173,7 +173,7 @@ def collect_rawdata_by_animal(
 def iterate_rawdata(
     rootdir: PathLike,
     file_version: RawFileVersion = 'v1',
-    error_handling: ErrorHandling = 'warn',
+    error_handling: _core.ErrorHandling = 'warn',
 ) -> Generator[RawData, None, None]:
     rootdir = Path(rootdir)
     for batch in (path for path in rootdir.iterdir() if path.name.startswith('run')):

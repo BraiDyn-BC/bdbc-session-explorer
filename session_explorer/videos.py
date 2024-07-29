@@ -92,7 +92,7 @@ def video_files_from_session(
             f"{videodir.name}: video directory not found",
             type=error_handling
         )
-        return VideoFiles.empty(sess)
+        return VideoFiles.empty(session)
     videos = dict()
     for vtype, vlab in VideoFiles.LABELS.items():
         vpath = find_video_file(videodir=videodir, videotype=vlab)
@@ -106,7 +106,12 @@ def video_files_from_session(
 
 
 def find_video_dir(session: _core.Session, videoroot: Path) -> Path:
-    return videoroot / session.date / f"{session.date}_{session.animal}"
+    datename = session.date
+    sessname = f"{session.date}_{session.animal}"
+    if session.type != 'task':
+        datename = f"{datename}_{session.type}"
+        sessname = f"{sessname}_{session.type}"
+    return videoroot / datename / sessname
 
 
 def find_video_file(videodir: Path, videotype: str = 'Eye') -> Optional[Path]:

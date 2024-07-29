@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Literal, Union
+from typing import Literal, Union, Dict
 from typing_extensions import Self
 from pathlib import Path
 from collections import namedtuple as _namedtuple
@@ -28,7 +28,6 @@ from datetime import datetime as _datetime
 import sys as _sys
 import warnings as _warnings
 
-import rawdata_explorer as _rawx
 
 PathLike = Union[str, Path]
 ErrorHandling = Literal['ignore', 'warn', 'error']
@@ -83,10 +82,6 @@ class Session(_namedtuple('Session', ('batch', 'animal', 'date', 'type'))):
             return f"{self.date}_{self.animal}"
         else:
             return f"{self.date}_{self.animal}_{self.type}"
-
-    @classmethod
-    def from_rawdata(cls, raw: _rawx.RawData) -> Self:
-        return cls(**dict((key, getattr(raw, key)) for key in cls._fields))
 
     def metadata(self) -> Dict[str, str]:
         return {
