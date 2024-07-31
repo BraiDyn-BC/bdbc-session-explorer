@@ -30,7 +30,7 @@ import warnings as _warnings
 
 
 PathLike = Union[str, Path]
-ErrorHandling = Literal['ignore', 'warn', 'error']
+ErrorHandling = Literal['ignore', 'message', 'warn', 'error']
 
 
 def message(
@@ -59,6 +59,8 @@ def handle_error(
 ):
     if type == 'ignore':
         return
+    elif type == 'message':
+        message(f"***{msg}", verbose=True)
     elif type == 'warn':
         _warnings.warn(msg, category=warncls, stacklevel=3)
         return
@@ -71,10 +73,23 @@ def handle_error(
 class Session(_namedtuple('Session', ('batch', 'animal', 'date', 'type'))):
     FMT_SHORT_DATE = '%y%m%d'
     FMT_LONG_DATE  = '%Y-%m-%d'
+    LONG_TYPES = {
+        'task': 'task',
+        'rest': 'resting-state',
+        'ss': 'sensory-stim',
+    }
+
+    @property
+    def escaped_animal(self) -> str:
+        return self.animal.replace('-', '').replace('#', '-')
     
     @property
     def longdate(self) -> str:
         return _datetime.strptime(self.date, self.FMT_SHORT_DATE).strftime(self.FMT_LONG_DATE)
+
+    @property
+    def longtype(self) -> str:
+        return self.LONG_TYPES[self.type]
 
     @property
     def base(self) -> str:

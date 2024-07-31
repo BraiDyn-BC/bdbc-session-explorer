@@ -56,6 +56,9 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
     def directory(self) -> Path:
         return self.body.parent
 
+    def is_not_empty(self) -> bool:
+        return any((getattr(self, lab) is not None) for lab in self.LABELS.keys())
+
     def copy_to_temp(
         self,
         verbose: bool = True

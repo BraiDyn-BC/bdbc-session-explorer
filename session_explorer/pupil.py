@@ -32,7 +32,7 @@ from . import (
 
 def fit_pupil(
     dlc_output: _dlc.DLCOutputFiles,
-    pupilroot: Path,
+    pupilfile: Path,
     likelihood_threshold: float = 0.9999,
     min_valid_points: int = 15,
     overwrite: bool = False,
@@ -41,16 +41,14 @@ def fit_pupil(
     if dlc_output.eye is None:
         raise FileNotFoundError(f"eye file not found in: {dlcoutput.directory}")
     session = dlc_output.session
-    pupildir = find_pupil_output_dir(session, pupilroot)
-    pupilpath = pupildir / f"{session.date}_{session.animal}_pupilfitting.h5"
     
     # FIXME: compare update timestamp with `dlcoutput.eye`
-    if (not overwrite) and pupilpath.exists():
+    if (not overwrite) and pupilfile.exists():
         _core.message(f"{session.date}_{session.animal}: pupil already fitted", verbose=verbose)
         return
     process_eye_file(
         eyefile=dlc_output.eye,
-        pupilfile=pupilpath,
+        pupilfile=pupilfile,
         likelihood_threshold=likelihood_threshold,
         min_valid_points=min_valid_points,
         verbose=verbose
@@ -80,4 +78,12 @@ def process_eye_file(
 
 def find_pupil_output_dir(session: _core.Session, pupilroot: Path) -> Path:
     return pupilroot / f"{session.date}_{session.animal}"
+
+
+def locate_pupil_file(
+    session: _core.Session,
+    pupilroot: Path
+) -> Path:
+    pupildir = find_pupil_output_dir(session, pupilroot)
+    return pupildir / f"{session.date}_{session.animal}_pupilfitting.h5"
 

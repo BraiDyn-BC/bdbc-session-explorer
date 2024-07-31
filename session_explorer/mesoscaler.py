@@ -20,34 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from importlib import reload as _reload
-
+from pathlib import Path
 from . import (
-    core,
-    rawdata,
-    videos,
-    dlc,
-    pupil,
-    mesoscaler,
+    core as _core,
 )
 
-_reload(core)
-_reload(rawdata)
-_reload(videos)
-_reload(dlc)
-_reload(pupil)
-_reload(mesoscaler)
+PathLike = _core.PathLike
 
-Session = core.Session
-RawData = rawdata.RawData
-VideoFiles = videos.VideoFiles
-DLCOutputFiles = dlc.DLCOutputFiles
 
-iterate_rawdata = rawdata.iterate_rawdata
-collect_rawdata_by_animal = rawdata.collect_rawdata_by_animal
-video_files_from_session = videos.video_files_from_session
-dlc_output_files_from_session = dlc.dlc_output_files_from_session
-locate_pupil_file = pupil.locate_pupil_file
-fit_pupil = pupil.fit_pupil
-locate_mesoscaler_file = mesoscaler.locate_mesoscaler_file
+def locate_mesoscaler_file(
+    session: _core.Session, 
+    mesoroot: PathLike,
+) -> Path:
+    mesoroot = Path(mesoroot)
+    anidir = mesoroot / session.batch / session.animal
+    return anidir / f"{session.base}_mesoscaler.h5"
 
