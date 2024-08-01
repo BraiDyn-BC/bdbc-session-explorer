@@ -20,12 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from typing import Optional
 from pathlib import Path
 
 import pupilfitting as _pupf
 
 from . import (
     core as _core,
+    session as _session,
     dlc as _dlc,
 )
 
@@ -76,14 +78,17 @@ def process_eye_file(
     pupil.to_hdf(str(pupilfile), key='df_with_missing')
 
 
-def find_pupil_output_dir(session: _core.Session, pupilroot: Path) -> Path:
+def find_pupil_output_dir(session: _session.Session, pupilroot: Path) -> Path:
     return pupilroot / f"{session.date}_{session.animal}"
 
 
 def locate_pupil_file(
-    session: _core.Session,
-    pupilroot: Path
-) -> Path:
+    session: _session.Session,
+    pupilroot: Path,
+    locate_without_eyevideo: bool = False,
+) -> Optional[Path]:
+    if not session.has_eyevideo() and (not locate_without_eyevideo):
+        return None
     pupildir = find_pupil_output_dir(session, pupilroot)
     return pupildir / f"{session.date}_{session.animal}_pupilfitting.h5"
 

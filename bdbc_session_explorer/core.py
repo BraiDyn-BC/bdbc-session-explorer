@@ -20,34 +20,53 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from importlib import reload as _reload
+from typing import Literal, Union, Dict, Optional
+from pathlib import Path
+import sys as _sys
+import warnings as _warnings
 
-from . import (
-    core,
-    rawdata,
-    videos,
-    dlc,
-    pupil,
-    mesoscaler,
-)
 
-_reload(core)
-_reload(rawdata)
-_reload(videos)
-_reload(dlc)
-_reload(pupil)
-_reload(mesoscaler)
+PathLike = Union[str, Path]
+ErrorHandling = Literal['ignore', 'message', 'warn', 'error']
 
-Session = core.Session
-RawData = rawdata.RawData
-VideoFiles = videos.VideoFiles
-DLCOutputFiles = dlc.DLCOutputFiles
 
-iterate_rawdata = rawdata.iterate_rawdata
-collect_rawdata_by_animal = rawdata.collect_rawdata_by_animal
-video_files_from_session = videos.video_files_from_session
-dlc_output_files_from_session = dlc.dlc_output_files_from_session
-locate_pupil_file = pupil.locate_pupil_file
-fit_pupil = pupil.fit_pupil
-locate_mesoscaler_file = mesoscaler.locate_mesoscaler_file
+def message(
+    msg: str,
+    end: str = '\n',
+    verbose: bool = True
+):
+    if verbose:
+        print(msg, end=end, file=_sys.stderr, flush=True)
+
+
+class FileNotFoundWarning(UserWarning):
+    pass
+
+
+class SessionExplorationError(RuntimeError):
+    def __init__(self, msg):
+        super().__init__(self, msg)
+
+
+class SessionExplorationWarning(UserWarning):
+    pass
+
+
+def handle_error(
+    msg,
+    type: ErrorHandling = 'warn',
+    errorcls: type = SessionExplorationError,
+    warncls: type = SessionExplorationWarning,
+):
+    if type == 'ignore':
+        return
+    elif type == 'message':
+        message(f"***{msg}", verbose=True)
+    elif type == 'warn':
+        _warnings.warn(msg, category=warncls, stacklevel=3)
+        return
+    elif type == 'error':
+        raise errorcls(msg)
+    else:
+        raise ValueError(f'unexpected error handling type: {type}')
 

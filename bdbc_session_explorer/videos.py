@@ -30,6 +30,7 @@ import tempfile as _tempfile
 
 from . import (
     core as _core,
+    session as _session,
 )
 
 
@@ -43,7 +44,7 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
     @classmethod
     def empty(
         cls,
-        session: Optional[_core.Session] = None
+        session: Optional[_session.Session] = None
     ) -> Self:
         return cls(
             session=session,
@@ -85,10 +86,12 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
 
 
 def video_files_from_session(
-    session: _core.Session,
+    session: _session.Session,
     videoroot: Path,
     error_handling: _core.ErrorHandling = 'warn',
 ) -> VideoFiles:
+    if not session.has_any_videos():
+        return VideoFiles.empty(session=session)
     videodir = find_video_dir(session, videoroot=videoroot)
     if not videodir.exists():
         _core.handle_error(
@@ -98,22 +101,25 @@ def video_files_from_session(
         return VideoFiles.empty(session)
     videos = dict()
     for vtype, vlab in VideoFiles.LABELS.items():
-        vpath = find_video_file(videodir=videodir, videotype=vlab)
-        if (vpath is None) or (not vpath.exists()):
-            _core.handle_error(
-                f"{videodir.name}: {vtype} video not found",
-                type=error_handling,
-            )
+        if session.availability.has_video(vtype):
+            vpath = find_video_file(videodir=videodir, videotype=vlab)
+            if (vpath is None) or (not vpath.exists()):
+                _core.handle_error(
+                    f"{videodir.name}: {vtype} video not found",
+                    type=error_handling,
+                )
+        else:
+            vpath = None
         videos[vtype] = vpath
     return VideoFiles(session=session, **videos)
 
 
-def find_video_dir(session: _core.Session, videoroot: Path) -> Path:
-    datename = session.date
+def find_video_dir(session: _session.Session, videoroot: Path) -> Path:
+    datename = session.shortdate
     sessname = f"{session.date}_{session.animal}"
-    if session.type != 'task':
-        datename = f"{datename}_{session.type}"
-        sessname = f"{sessname}_{session.type}"
+    if session.shorttype != 'task':
+        datename = f"{datename}_{session.shorttype}"
+        sessname = f"{sessname}_{session.shorttype}"
     return videoroot / datename / sessname
 
 

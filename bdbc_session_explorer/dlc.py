@@ -28,6 +28,7 @@ import shutil as _shutil
 
 from . import (
     core as _core,
+    session as _session,
     videos as _videos,
 )
 
@@ -123,7 +124,7 @@ def ensure_dlc_output(
 
 
 def dlc_output_files_from_session(
-    session: _core.Session,
+    session: _session.Session,
     dlcroot: Path,
 ) -> DLCOutputFiles:
     dlcdir = find_dlc_output_dir(session, dlcroot)
@@ -141,8 +142,8 @@ def dlc_output_files_from_session(
     )
 
 
-def find_dlc_output_dir(session: _core.Session, dlcroot: Path) -> Path:
-    return dlcroot / f"{session.date}_{session.animal}"
+def find_dlc_output_dir(session: _session.Session, dlcroot: Path) -> Path:
+    return dlcroot / f"{session.shortdate}_{session.animal}"
 
 
 def find_dlc_output(dlcdir: Path, dtype: str = 'eye', label: str = 'Eye') -> Optional[Path]:
