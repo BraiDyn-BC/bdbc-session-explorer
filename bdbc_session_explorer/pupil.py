@@ -79,7 +79,7 @@ def process_eye_file(
 
 
 def find_pupil_output_dir(session: _session.Session, pupilroot: Path) -> Path:
-    return pupilroot / f"{session.date}_{session.animal}"
+    return pupilroot / f"{session.shortdate}_{session.animal}"
 
 
 def locate_pupil_file(
@@ -90,5 +90,5 @@ def locate_pupil_file(
     if not session.has_eyevideo() and (not locate_without_eyevideo):
         return None
     pupildir = find_pupil_output_dir(session, pupilroot)
-    return pupildir / f"{session.date}_{session.animal}_pupilfitting.h5"
+    return pupildir / f"{session.shortdate}_{session.animal}_pupilfitting.h5"
 

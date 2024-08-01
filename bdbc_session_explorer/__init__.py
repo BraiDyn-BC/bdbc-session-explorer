@@ -47,6 +47,7 @@ DLCOutputFiles = dlc.DLCOutputFiles
 
 iterate_sessions = session.iterate_sessions
 rawdata_from_session = rawdata.rawdata_from_session
+locate_rawdata_file = rawdata.locate_rawdata_file
 video_files_from_session = videos.video_files_from_session
 dlc_output_files_from_session = dlc.dlc_output_files_from_session
 locate_pupil_file = pupil.locate_pupil_file

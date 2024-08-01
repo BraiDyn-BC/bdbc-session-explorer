@@ -52,11 +52,11 @@ class Availability(_namedtuple('Availability', (
     VIDEO_VIEWS = ('body', 'face', 'eye')
 
     def has_rawdata(self) -> bool:
-        return (self.rawdata is not None) and self.rawdata
+        return (self.rawdata is not None) and (self.rawdata == True)
 
     def has_video(self, view: str) -> bool:
         val = getattr(self, f"{view}video")
-        return (val is not None) and val
+        return (val is not None) and (val == True)
 
     def has_any_videos(self) -> bool:
         return any(self.has_video(view) for view in self.VIDEO_VIEWS)
@@ -132,7 +132,7 @@ class Session(_namedtuple('Session', (
     def longbase(self) -> str:
         return f"{self.animal}_{self.longdate}_{self.longtype}-{self.longday}"
 
-    def has_rawdata(self) -> Optional[bool]:
+    def has_rawdata(self) -> bool:
         return self.availability.has_rawdata()
 
     def has_any_videos(self) -> bool:

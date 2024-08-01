@@ -116,7 +116,7 @@ def video_files_from_session(
 
 def find_video_dir(session: _session.Session, videoroot: Path) -> Path:
     datename = session.shortdate
-    sessname = f"{session.date}_{session.animal}"
+    sessname = f"{session.shortdate}_{session.animal}"
     if session.shorttype != 'task':
         datename = f"{datename}_{session.shorttype}"
         sessname = f"{sessname}_{session.shorttype}"
