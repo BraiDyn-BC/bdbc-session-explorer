@@ -41,7 +41,7 @@ def fit_pupil(
     verbose: bool = True,
 ) -> Path:
     if dlc_output.eye is None:
-        raise FileNotFoundError(f"eye file not found in: {dlcoutput.directory}")
+        raise FileNotFoundError(f"eye file not found in: {dlc_output.directory}")
     session = dlc_output.session
     
     # FIXME: compare update timestamp with `dlcoutput.eye`
@@ -55,7 +55,7 @@ def fit_pupil(
         min_valid_points=min_valid_points,
         verbose=verbose
     )
-    return pupilpath
+    return pupilfile
 
 
 def process_eye_file(

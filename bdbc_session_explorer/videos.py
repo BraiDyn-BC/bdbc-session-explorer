@@ -82,7 +82,7 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
             t, v, tb = _sys.exc_info()
             _shutil.rmtree(tempdir)
             raise (t, v, tb)
-        return self.__class__(session=session, **videos)
+        return self.__class__(session=self.session, **videos)
 
 
 def video_files_from_session(

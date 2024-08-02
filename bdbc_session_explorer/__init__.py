@@ -50,6 +50,7 @@ rawdata_from_session = rawdata.rawdata_from_session
 locate_rawdata_file = rawdata.locate_rawdata_file
 video_files_from_session = videos.video_files_from_session
 dlc_output_files_from_session = dlc.dlc_output_files_from_session
+ensure_dlc_output = dlc.ensure_dlc_output
 locate_pupil_file = pupil.locate_pupil_file
 fit_pupil = pupil.fit_pupil
 locate_mesoscaler_file = mesoscaler.locate_mesoscaler_file

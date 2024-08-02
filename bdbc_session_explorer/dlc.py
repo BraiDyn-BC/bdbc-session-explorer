@@ -24,6 +24,7 @@ from typing import Optional, Dict
 from pathlib import Path
 from collections import namedtuple as _namedtuple
 import sys as _sys
+import os as _os
 import shutil as _shutil
 
 from . import (
@@ -36,9 +37,9 @@ from . import (
 def dlc_config_files() -> Dict[str, Path]:
     filename_cfg = 'config.yaml'
     configs = {
-        'eye': Path(os.environ['DLC_EYEMODEL_DIR']) / filename_cfg,
-        'face': Path(os.environ['DLC_FACEMODEL_DIR']) / filename_cfg,
-        'body': Path(os.environ['DLC_BODYMODEL_DIR']) / filename_cfg,
+        'eye': Path(_os.environ['DLC_EYEMODEL_DIR']) / filename_cfg,
+        'face': Path(_os.environ['DLC_FACEMODEL_DIR']) / filename_cfg,
+        'body': Path(_os.environ['DLC_BODYMODEL_DIR']) / filename_cfg,
     }
     assert all(config.exists() for config in configs.values())
     return configs
@@ -60,7 +61,7 @@ def ensure_dlc_output(
 ) -> DLCOutputFiles:
     configs = dlc_config_files()
     session = videos.session
-    status  = dlc_output_files_from_session(session)
+    status  = dlc_output_files_from_session(session, dlcroot)
 
     if (not overwrite) and all((getattr(status, dtype) is not None) for dtype in status.LABELS.keys()):
         _core.message(
@@ -83,8 +84,8 @@ def ensure_dlc_output(
     try:
         import deeplabcut as _dlc
     except ImportError:
-        dlc = None
-    if dlc is None:
+        _dlc = None
+    if _dlc is None:
         raise NotImplementedError("install DeepLabCut to run this procedure")
 
     temp_videos = videos.copy_to_temp(verbose=verbose)
@@ -94,7 +95,7 @@ def ensure_dlc_output(
             vpath = getattr(temp_videos, vtype)
             if vpath is None:
                 continue
-            if (not overwrite) and (getattr(status, vtype).exists() is not None):
+            if (not overwrite) and (getattr(status, vtype) is not None):
                 _core.message(
                     f"{session.date}_{session.animal}: {vtype} video has been already analyzed",
                     verbose=verbose,
