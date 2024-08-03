@@ -107,7 +107,7 @@ def ensure_dlc_output(
                 gputouse=0,
             )
             output = _dlc_output(vpath)
-            sys.stdout.flush()
+            _sys.stdout.flush()
             _core.message(
                 f"{session.date}_{session.animal}: {vtype}: copying the results...",
                 end='',
@@ -144,7 +144,10 @@ def dlc_output_files_from_session(
 
 
 def find_dlc_output_dir(session: _session.Session, dlcroot: Path) -> Path:
-    return dlcroot / f"{session.shortdate}_{session.animal}"
+    basename = f"{session.shortdate}_{session.animal}"
+    if session.type != 'task':
+        basename += f"_{session.shorttype}"
+    return dlcroot / basename
 
 
 def find_dlc_output(dlcdir: Path, dtype: str = 'eye', label: str = 'Eye') -> Optional[Path]:
