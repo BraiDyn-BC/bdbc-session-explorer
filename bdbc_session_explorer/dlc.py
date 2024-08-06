@@ -116,6 +116,8 @@ def ensure_dlc_output(
             dlcpath = status.directory / output.name
             if dlcpath.exists():
                 dlcpath.unlink()
+            elif not status.directory.exists():
+                status.directory.mkdir(parents=True)
             _shutil.move(output, dlcpath)
             _core.message("done.", verbose=verbose)
 
