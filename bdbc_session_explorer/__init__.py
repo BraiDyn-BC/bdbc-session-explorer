@@ -42,6 +42,7 @@ _reload(mesoscaler)
 
 Session = session.Session
 RawData = rawdata.RawData
+RawFileVersion = rawdata.RawFileVersion
 VideoFiles = videos.VideoFiles
 DLCOutputFiles = dlc.DLCOutputFiles
 
@@ -54,4 +55,3 @@ ensure_dlc_output = dlc.ensure_dlc_output
 locate_pupil_file = pupil.locate_pupil_file
 fit_pupil = pupil.fit_pupil
 locate_mesoscaler_file = mesoscaler.locate_mesoscaler_file
-

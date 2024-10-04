@@ -23,9 +23,6 @@
 from typing import Union, Literal, Tuple, Dict, Optional, Iterable
 from pathlib import Path
 from collections import namedtuple as _namedtuple
-from datetime import datetime as _datetime
-import warnings as _warnings
-import re as _re
 
 import numpy as _np
 import numpy.typing as _npt
@@ -70,7 +67,7 @@ class RawData(_namedtuple('RawData', ('version', 'session', 'path'))):
     @property
     def batch(self) -> str:
         return self.session.batch
-    
+
     @property
     def animal(self) -> str:
         return self.session.animal
@@ -221,4 +218,3 @@ def locate_rawdata_file(
         warncls=RawDataDirectoryWarning,
     )
     return None
-

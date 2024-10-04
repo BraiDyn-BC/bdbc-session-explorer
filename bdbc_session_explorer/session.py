@@ -93,7 +93,7 @@ class Session(_namedtuple('Session', (
     @property
     def shortdate(self) -> str:
         return self.date.strftime(self.FMT_SHORT_DATE)
- 
+
     @property
     def longdate(self) -> str:
         return self.date.strftime(self.FMT_LONG_DATE)
@@ -218,4 +218,3 @@ def format_session_record(
         description=desc,
         comments=comm,
     )
-

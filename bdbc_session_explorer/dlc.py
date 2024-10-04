@@ -69,7 +69,6 @@ def ensure_dlc_output(
             verbose=verbose,
         )
 
-    
     def _dlc_output(
         videopath: Path
     ) -> Optional[Path]:
@@ -159,4 +158,3 @@ def find_dlc_output(dlcdir: Path, dtype: str = 'eye', label: str = 'Eye') -> Opt
     elif len(candidates) == 0:
         return None
     return candidates[0]
-

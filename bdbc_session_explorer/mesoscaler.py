@@ -31,7 +31,7 @@ PathLike = _core.PathLike
 
 
 def locate_mesoscaler_file(
-    session: _session.Session, 
+    session: _session.Session,
     mesoroot: PathLike,
     locate_without_rawdata: bool = False,
 ) -> Optional[Path]:
@@ -40,4 +40,3 @@ def locate_mesoscaler_file(
     mesoroot = Path(mesoroot)
     anidir = mesoroot / session.batch / session.animal
     return anidir / f"{session.shortbase}_mesoscaler.h5"
-

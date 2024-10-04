@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Literal, Union, Dict, Optional
+from typing import Literal, Union
 from pathlib import Path
 import sys as _sys
 import warnings as _warnings
@@ -69,4 +69,3 @@ def handle_error(
         raise errorcls(msg)
     else:
         raise ValueError(f'unexpected error handling type: {type}')
-

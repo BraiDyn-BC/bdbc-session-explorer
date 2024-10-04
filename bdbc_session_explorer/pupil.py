@@ -43,7 +43,7 @@ def fit_pupil(
     if dlc_output.eye is None:
         raise FileNotFoundError(f"eye file not found in: {dlc_output.directory}")
     session = dlc_output.session
-    
+
     # FIXME: compare update timestamp with `dlcoutput.eye`
     if (not overwrite) and pupilfile.exists():
         _core.message(f"{session.date}_{session.animal}: pupil already fitted", verbose=verbose)
@@ -94,4 +94,3 @@ def locate_pupil_file(
         return None
     pupildir = find_pupil_output_dir(session, pupilroot)
     return pupildir / f"{session.shortdate}_{session.animal}_pupilfitting.h5"
-
