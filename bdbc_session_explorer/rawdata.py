@@ -34,8 +34,10 @@ from . import (
 )
 
 PathLike = _core.PathLike
-RawFileVersion = Literal['v0', 'v1']
+RawFileVersion = Literal['v0', 'v1', 'v2']
 ImageChannel = Literal['green', 'blue']
+
+DEFAULT_FILE_VERSION = 'v1'
 
 # FIXME: want to write _npt.NDArray[Tuple[int, int], _np.float32]
 # # but it somehow results in an error in a certain case...
@@ -55,7 +57,7 @@ class RawData(_namedtuple('RawData', ('version', 'session', 'path'))):
     @classmethod
     def empty(
         cls,
-        version: RawFileVersion = 'v1',
+        version: RawFileVersion = DEFAULT_FILE_VERSION,
         session: Optional[_session.Session] = None,
     ):
         return cls(version, session, None)
@@ -113,7 +115,7 @@ class RawData(_namedtuple('RawData', ('version', 'session', 'path'))):
 
 
 def _avg_frame_paths(
-    file_version: RawFileVersion = 'v1',
+    file_version: RawFileVersion = DEFAULT_FILE_VERSION,
     image_channel: ImageChannel = 'green',
 ) -> Tuple[str, str]:
     if file_version == 'v0':
@@ -123,7 +125,7 @@ def _avg_frame_paths(
             return ('Image/Vavg', 'Image/Vstd')
         else:
             raise ValueError(f"unexpected channel spec: {image_channel}")
-    elif file_version == 'v1':
+    elif file_version in ('v1', 'v2'):
         if image_channel == 'green':
             return ('image/Ib_avg', 'image/Ib_std')
         elif image_channel == 'blue':
@@ -137,7 +139,7 @@ def _avg_frame_paths(
 def rawdata_from_session(
     session: _session.Session,
     rawroot: Union[PathLike, Iterable[PathLike]],
-    file_version: RawFileVersion = 'v1',
+    file_version: RawFileVersion = DEFAULT_FILE_VERSION,
     error_handling: _core.ErrorHandling = 'warn',
     locate_without_rawdata: bool = False,
 ) -> RawData:
@@ -157,7 +159,7 @@ def rawdata_from_session(
 def locate_rawdata_file(
     session: _session.Session,
     rawroot: Union[PathLike, Iterable[PathLike]],
-    file_version: RawFileVersion = 'v1',
+    file_version: RawFileVersion = DEFAULT_FILE_VERSION,
     error_handling: _core.ErrorHandling = 'warn',
     locate_without_rawdata: bool = False,
 ) -> Optional[Path]:
@@ -171,7 +173,7 @@ def locate_rawdata_file(
         pat = f"RawData_{session.shortdate}_{session.animal}*.h5"
         return parent, pat
 
-    def _configure_v1(anidir, session):
+    def _configure_v1v2(anidir, session):
         parent = anidir / session.shorttype
         pat = f"RawData_{session.longdate}_{session.animal}*.h5"
         return parent, pat
@@ -184,8 +186,8 @@ def locate_rawdata_file(
         anidir = root / session.batch / session.animal
         if file_version == 'v0':
             parent, pat = _configure_v0(anidir, session)
-        elif file_version == 'v1':
-            parent, pat = _configure_v1(anidir, session)
+        elif file_version in ('v1', 'v2'):
+            parent, pat = _configure_v1v2(anidir, session)
         else:
             raise ValueError(f"unexpected file version: {file_version}")
         if not parent.exists():
