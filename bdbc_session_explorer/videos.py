@@ -88,9 +88,10 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
 def video_files_from_session(
     session: _session.Session,
     videoroot: Path,
+    force_search: bool = False,
     error_handling: _core.ErrorHandling = 'warn',
 ) -> VideoFiles:
-    if not session.has_any_videos():
+    if (not force_search) and (not session.has_any_videos()):
         return VideoFiles.empty(session=session)
     videodir = find_video_dir(session, videoroot=videoroot)
     if not videodir.exists():
