@@ -24,7 +24,9 @@ from importlib import reload as _reload
 
 from . import (
     core,
+    env,
     session,
+    find,
     rawdata,
     videos,
     dlc,
@@ -33,12 +35,14 @@ from . import (
 )
 
 _reload(core)
+_reload(env)
 _reload(session)
 _reload(rawdata)
 _reload(videos)
 _reload(dlc)
 _reload(pupil)
 _reload(mesoscaler)
+_reload(find)
 
 Session = session.Session
 RawData = rawdata.RawData
@@ -46,7 +50,7 @@ RawFileVersion = rawdata.RawFileVersion
 VideoFiles = videos.VideoFiles
 DLCOutputFiles = dlc.DLCOutputFiles
 
-iterate_sessions = session.iterate_sessions
+iterate_sessions = find.iterate_sessions
 rawdata_from_session = rawdata.rawdata_from_session
 locate_rawdata_file = rawdata.locate_rawdata_file
 video_files_from_session = videos.video_files_from_session
@@ -55,3 +59,15 @@ ensure_dlc_output = dlc.ensure_dlc_output
 locate_pupil_file = pupil.locate_pupil_file
 fit_pupil = pupil.fit_pupil
 locate_mesoscaler_file = mesoscaler.locate_mesoscaler_file
+
+animal_strain_ID = env.animal_strain_ID
+task_type = env.task_type
+sessions_root_dir = env.sessions_root_dir
+rawdata_root_dirs = env.rawdata_root_dirs
+mesoscaler_root_dir = env.mesoscaler_root_dir
+videos_root_dir = env.videos_root_dir
+dlc_model_dir = env.dlc_model_dir
+dlcresults_root_dir = env.dlcresults_root_dir
+pupilfitting_root_dir = env.pupilfitting_root_dir
+publication_root_dir = env.publication_root_dir
+dlc_config_files = dlc.dlc_config_files

@@ -20,13 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Literal, Union
+from typing import Literal, Union, Optional, Iterable
 from pathlib import Path
+from datetime import datetime
 import sys as _sys
 import warnings as _warnings
 
 
 PathLike = Union[str, Path]
+PathsLike = Union[PathLike, Iterable[PathLike]]
 ErrorHandling = Literal['ignore', 'message', 'warn', 'error']
 
 
@@ -50,6 +52,20 @@ class SessionExplorationError(RuntimeError):
 
 class SessionExplorationWarning(UserWarning):
     pass
+
+
+def maybe_path(path: Optional[PathLike]) -> Optional[Path]:
+    if path is not None:
+        return Path(path)
+    else:
+        return None
+
+
+def parse_date(datestr: str) -> datetime:
+    if '-' in datestr:
+        return datetime.strptime(datestr, '%Y-%m-%d')
+    else:
+        return datetime.strptime(datestr, '%y%m%d')
 
 
 def handle_error(

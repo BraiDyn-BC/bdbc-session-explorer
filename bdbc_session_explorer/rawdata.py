@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Union, Literal, Tuple, Dict, Optional, Iterable
+from typing import Union, Literal, Optional, Iterable
 from pathlib import Path
-from collections import namedtuple as _namedtuple
+from dataclasses import dataclass
 
 import numpy as _np
 import numpy.typing as _npt
@@ -30,6 +30,7 @@ import h5py as _h5
 
 from . import (
     core as _core,
+    env as _env,
     session as _session,
 )
 
@@ -53,7 +54,12 @@ class RawDataDirectoryError(RuntimeError):
         super().__init__(msg)
 
 
-class RawData(_namedtuple('RawData', ('version', 'session', 'path'))):
+@dataclass
+class RawData:
+    version: RawFileVersion = DEFAULT_FILE_VERSION
+    session: Optional[_session.Session] = None
+    path: Optional[Path] = None
+
     @classmethod
     def empty(
         cls,
@@ -61,6 +67,9 @@ class RawData(_namedtuple('RawData', ('version', 'session', 'path'))):
         session: Optional[_session.Session] = None,
     ):
         return cls(version, session, None)
+
+    def __post_init__(self):
+        self.path = _core.maybe_path(self.path)
 
     @property
     def base(self) -> str:
@@ -90,14 +99,14 @@ class RawData(_namedtuple('RawData', ('version', 'session', 'path'))):
     def longtype(self) -> str:
         return self.session.longtype
 
-    def metadata(self) -> Dict[str, str]:
+    def metadata(self) -> dict[str, str]:
         return self.session.metadata()
 
     def read_avg_frames(
         self,
         channel: ImageChannel = 'green',
         transposed: bool = True,
-    ) -> Tuple[AverageFrame, AverageFrame]:
+    ) -> tuple[AverageFrame, AverageFrame]:
         """returns (meanframe, stdframe)
 
         the option `transposed` is set to True by default,
@@ -117,7 +126,7 @@ class RawData(_namedtuple('RawData', ('version', 'session', 'path'))):
 def _avg_frame_paths(
     file_version: RawFileVersion = DEFAULT_FILE_VERSION,
     image_channel: ImageChannel = 'green',
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     if file_version == 'v0':
         if image_channel == 'green':
             return ('Image/Bavg', 'Image/Bstd')
@@ -138,7 +147,7 @@ def _avg_frame_paths(
 
 def rawdata_from_session(
     session: _session.Session,
-    rawroot: Union[PathLike, Iterable[PathLike]],
+    rawroot: Optional[Union[PathLike, Iterable[PathLike]]],
     file_version: RawFileVersion = DEFAULT_FILE_VERSION,
     error_handling: _core.ErrorHandling = 'warn',
     locate_without_rawdata: bool = False,
@@ -158,7 +167,7 @@ def rawdata_from_session(
 
 def locate_rawdata_file(
     session: _session.Session,
-    rawroot: Union[PathLike, Iterable[PathLike]],
+    rawroot: Optional[Union[PathLike, Iterable[PathLike]]],
     file_version: RawFileVersion = DEFAULT_FILE_VERSION,
     error_handling: _core.ErrorHandling = 'warn',
     locate_without_rawdata: bool = False,
@@ -178,10 +187,10 @@ def locate_rawdata_file(
         pat = f"RawData_{session.longdate}_{session.animal}*.h5"
         return parent, pat
 
+    rawroot = _env.rawdata_root_dirs(rawroot)
+
     if (not session.has_rawdata()) and (not locate_without_rawdata):
         return None
-    if isinstance(rawroot, (str, Path)):
-        rawroot = (rawroot,)
     for root in rawroot:
         anidir = root / session.batch / session.animal
         if file_version == 'v0':

@@ -24,6 +24,7 @@ from typing import Optional
 from pathlib import Path
 from . import (
     core as _core,
+    env as _env,
     session as _session,
 )
 
@@ -32,11 +33,11 @@ PathLike = _core.PathLike
 
 def locate_mesoscaler_file(
     session: _session.Session,
-    mesoroot: PathLike,
+    mesoroot: Optional[PathLike],
     locate_without_rawdata: bool = False,
 ) -> Optional[Path]:
     if (not session.has_rawdata()) and (not locate_without_rawdata):
         return None
-    mesoroot = Path(mesoroot)
+    mesoroot = _env.mesoscaler_root_dir(mesoroot)
     anidir = mesoroot / session.batch / session.animal
     return anidir / f"{session.shortbase}_mesoscaler.h5"

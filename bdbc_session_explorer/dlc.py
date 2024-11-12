@@ -20,56 +20,126 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Dict
+from typing import Optional, Union
+from typing_extensions import Self
 from pathlib import Path
-from collections import namedtuple as _namedtuple
+from dataclasses import dataclass
 import sys as _sys
-import os as _os
 import shutil as _shutil
 
 from . import (
     core as _core,
+    env as _env,
     session as _session,
     videos as _videos,
 )
 
+PathLike = _core.PathLike
 
-def dlc_config_files() -> Dict[str, Path]:
+
+def dlc_config_files(**project_dirs) -> dict[str, Path]:
     filename_cfg = 'config.yaml'
-    configs = {
-        'eye': Path(_os.environ['DLC_EYEMODEL_DIR']) / filename_cfg,
-        'face': Path(_os.environ['DLC_FACEMODEL_DIR']) / filename_cfg,
-        'body': Path(_os.environ['DLC_BODYMODEL_DIR']) / filename_cfg,
-    }
-    assert all(config.exists() for config in configs.values())
+    configs = dict()
+    for view in _env.video_views().keys():
+        projdir = _env.dlc_model_dir(
+            view,
+            modeldir=project_dirs.get(view, None),
+        )
+        configs[view] = projdir / filename_cfg
+    assert all((config is not None) and config.exists() for config in configs.values())
     return configs
 
 
-class DLCOutputFiles(_namedtuple('DLCOutput', ('session', 'directory', 'body', 'face', 'eye'))):
-    LABELS = {
-        'body': 'Front',
-        'face': 'Side',
-        'eye': 'Eye',
-    }
+@dataclass
+class DLCOutputFile:
+    directory: Optional[Path] = None
+    path: Optional[Path] = None
+
+    @classmethod
+    def empty(cls) -> Self:
+        return cls(
+            directory=None,
+            path=None
+        )
+
+    @classmethod
+    def from_path(cls, path: Optional[PathLike]) -> Self:
+        if path is None:
+            return cls.empty()
+        path = _core.maybe_path(path)
+        return cls(directory=path.parent, path=path)
+
+    def __post_init__(self):
+        self.directory = _core.maybe_path(self.directory)
+        self.path = _core.maybe_path(self.path)
+        if (self.directory is None) and (self.path is not None):
+            self.directory = self.path.parent
+
+    def is_available(self) -> bool:
+        return (self.directory is not None) and (self.path is not None)
+
+
+@dataclass
+class DLCOutputFiles:
+    session: Optional[_session.Session]
+    body: DLCOutputFile
+    face: DLCOutputFile
+    eye: DLCOutputFile
+
+    def __post_init__(self):
+        if self.body is None:
+            self.body = DLCOutputFile.empty()
+        elif isinstance(self.body, (Path, str)):
+            self.body = DLCOutputFile.from_path(self.body)
+        if self.face is None:
+            self.face = DLCOutputFile.empty()
+        elif isinstance(self.face, (Path, str)):
+            self.face = DLCOutputFile.from_path(self.face)
+        if self.eye is None:
+            self.eye = DLCOutputFile.empty()
+        elif isinstance(self.eye, (Path, str)):
+            self.eye = DLCOutputFile.from_path(self.eye)
+
+    def has_all_files(self) -> bool:
+        return all(getattr(self, view).is_available() for view in _env.video_views().keys())
+
+    def replace(
+        self,
+        body: Optional[Union[PathLike, DLCOutputFile]] = None,
+        face: Optional[Union[PathLike, DLCOutputFile]] = None,
+        eye: Optional[Union[PathLike, DLCOutputFile]] = None,
+    ) -> Self:
+        return self.__class__(
+            session=self.session,
+            body=DLCOutputFile.from_path(body),
+            face=DLCOutputFile.from_path(face),
+            eye=DLCOutputFile.from_path(eye),
+        )
 
 
 def ensure_dlc_output(
     videos: _videos.VideoFiles,
-    dlcroot: Path,
+    dlc_project_dirs: Optional[dict[str, Optional[Path]]] = None,
+    dlc_output_dirs: Optional[dict[str, Optional[Path]]] = None,
     overwrite: bool = False,
+    gpu_to_use: Optional[int] = 0,
     verbose: bool = True,
 ) -> DLCOutputFiles:
-    configs = dlc_config_files()
+    if dlc_project_dirs is None:
+        dlc_project_dirs = dict()
+    if dlc_output_dirs is None:
+        dlc_output_dirs = dict()
+    configs = dlc_config_files(**dlc_project_dirs)
     session = videos.session
-    status  = dlc_output_files_from_session(session, dlcroot)
+    files   = dlc_output_files_from_session(session, **dlc_output_dirs)
 
-    if (not overwrite) and all((getattr(status, dtype) is not None) for dtype in status.LABELS.keys()):
+    if (not overwrite) and files.has_all_files():
         _core.message(
             f"{session.date}_{session.animal}: all videos have been already analyzed",
             verbose=verbose,
         )
 
-    def _dlc_output(
+    def _find_results_path(
         videopath: Path
     ) -> Optional[Path]:
         candidates = list(videopath.parent.glob(f"{videopath.stem}DLC*.h5"))
@@ -81,65 +151,70 @@ def ensure_dlc_output(
             return candidates[0]
 
     try:
-        import deeplabcut as _dlc
+        import deeplabcut as dlc
     except ImportError:
-        _dlc = None
-    if _dlc is None:
-        raise NotImplementedError("install DeepLabCut to run this procedure")
+        dlc = None
+    if dlc is None:
+        raise NotImplementedError("install DeepLabCut to perform landmark estimation")
 
     temp_videos = videos.copy_to_temp(verbose=verbose)
-    computed = dict()
+    newly_computed = dict()
     try:
-        for vtype in temp_videos.LABELS.keys():
-            vpath = getattr(temp_videos, vtype)
-            if vpath is None:
+        for view in _env.video_views().keys():
+            source_video: Optional[Path] = getattr(temp_videos, view)
+            output_info: DLCOutputFile = getattr(files, view)
+            project_config: str = str(configs[view])
+
+            if source_video is None:
                 continue
-            if (not overwrite) and (getattr(status, vtype) is not None):
+            if (not overwrite) and output_info.is_available():
                 _core.message(
-                    f"{session.date}_{session.animal}: {vtype} video has been already analyzed",
+                    f"{session.date}_{session.animal}: {view} video has been already analyzed",
                     verbose=verbose,
                 )
                 continue
-            _dlc.analyze_videos(
-                str(configs[vtype]),
-                [str(vpath)],
-                gputouse=0,
+
+            dlc.analyze_videos(
+                project_config,
+                [str(source_video)],
+                gputouse=gpu_to_use,
             )
-            output = _dlc_output(vpath)
+            results_file = _find_results_path(source_video)
             _sys.stdout.flush()
             _core.message(
-                f"{session.date}_{session.animal}: {vtype}: copying the results...",
+                f"{session.date}_{session.animal}: {view}: copying the results...",
                 end='',
                 verbose=verbose
             )
-            dlcpath = status.directory / output.name
-            if dlcpath.exists():
-                dlcpath.unlink()
-            elif not status.directory.exists():
-                status.directory.mkdir(parents=True)
-            _shutil.move(output, dlcpath)
+            output_path = output_info.directory / results_file.name
+            if output_path.exists():
+                output_path.unlink()
+            elif not output_info.directory.exists():
+                output_info.directory.mkdir(parents=True)
+            _shutil.move(results_file, output_path)
+            newly_computed[view] = output_path
             _core.message("done.", verbose=verbose)
 
-        return status._replace(**computed)
+        return files.replace(**newly_computed)
     finally:
         _shutil.rmtree(temp_videos.directory)
 
 
 def dlc_output_files_from_session(
     session: _session.Session,
-    dlcroot: Path,
+    **dlcroot,
 ) -> DLCOutputFiles:
-    dlcdir = find_dlc_output_dir(session, dlcroot)
     files = dict()
-    for dtype, label in DLCOutputFiles.LABELS.items():
+    for dtype, label in _env.video_views().items():
+        resultsroot = _env.dlcresults_root_dir(dtype, dlcroot.get(dtype, None))
+        resultsdir = find_dlc_output_dir(session, resultsroot)
         try:
-            dpath = find_dlc_output(dlcdir, dtype, label)
+            dpath = find_dlc_output(resultsdir, dtype, label)
         except ValueError:
             dpath = None
         files[dtype] = dpath
     return DLCOutputFiles(
         session=session,
-        directory=dlcdir,
         **files
     )
 
@@ -148,7 +223,7 @@ def find_dlc_output_dir(session: _session.Session, dlcroot: Path) -> Path:
     basename = f"{session.shortdate}_{session.animal}"
     if session.type != 'task':
         basename += f"_{session.shorttype}"
-    return dlcroot / basename
+    return dlcroot / session.shortdate / basename
 
 
 def find_dlc_output(dlcdir: Path, dtype: str = 'eye', label: str = 'Eye') -> Optional[Path]:

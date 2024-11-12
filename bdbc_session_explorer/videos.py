@@ -23,23 +23,24 @@
 from typing import Optional
 from typing_extensions import Self
 from pathlib import Path
-from collections import namedtuple as _namedtuple
+from dataclasses import dataclass
 import sys as _sys
 import shutil as _shutil
 import tempfile as _tempfile
 
 from . import (
     core as _core,
+    env as _env,
     session as _session,
 )
 
 
-class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
-    LABELS = {
-        'body': 'Front',
-        'face': 'Side',
-        'eye': 'Eye',
-    }
+@dataclass
+class VideoFiles:
+    session: Optional[_session.Session] = None
+    body: Optional[Path] = None
+    face: Optional[Path] = None
+    eye: Optional[Path] = None
 
     @classmethod
     def empty(
@@ -53,12 +54,17 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
             eye=None
         )
 
+    def __post_init__(self):
+        self.body = _core.maybe_path(self.body)
+        self.face = _core.maybe_path(self.face)
+        self.eye  = _core.maybe_path(self.eye)
+
     @property
     def directory(self) -> Path:
         return self.body.parent
 
     def is_not_empty(self) -> bool:
-        return any((getattr(self, lab) is not None) for lab in self.LABELS.keys())
+        return any((getattr(self, lab) is not None) for lab in _env.video_views().keys())
 
     def copy_to_temp(
         self,
@@ -68,7 +74,7 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
         try:
             videos = dict()
             _core.message(f"copying {self.directory.name}: ", end='', verbose=verbose)
-            for vtype in self.LABELS.keys():
+            for vtype in _env.video_views().keys():
                 _core.message(f"{vtype}...", end='', verbose=verbose)
                 video = getattr(self, vtype)
                 if video is not None:
@@ -87,12 +93,13 @@ class VideoFiles(_namedtuple('VideoFiles', ('session', 'body', 'face', 'eye'))):
 
 def video_files_from_session(
     session: _session.Session,
-    videoroot: Path,
+    videoroot: Optional[Path] = None,
     force_search: bool = False,
     error_handling: _core.ErrorHandling = 'warn',
 ) -> VideoFiles:
     if (not force_search) and (not session.has_any_videos()):
         return VideoFiles.empty(session=session)
+    videoroot = _env.videos_root_dir(videoroot)
     videodir = find_video_dir(session, videoroot=videoroot)
     if not videodir.exists():
         _core.handle_error(
@@ -101,7 +108,7 @@ def video_files_from_session(
         )
         return VideoFiles.empty(session)
     videos = dict()
-    for vtype, vlab in VideoFiles.LABELS.items():
+    for vtype, vlab in _env.video_views().items():
         if session.availability.has_video(vtype):
             vpath = find_video_file(videodir=videodir, videotype=vlab)
             if (vpath is None) or (not vpath.exists()):
@@ -115,7 +122,8 @@ def video_files_from_session(
     return VideoFiles(session=session, **videos)
 
 
-def find_video_dir(session: _session.Session, videoroot: Path) -> Path:
+def find_video_dir(session: _session.Session, videoroot: Optional[Path]) -> Path:
+    videoroot = _env.videos_root_dir(videoroot)
     datename = session.shortdate
     sessname = f"{session.shortdate}_{session.animal}"
     if session.shorttype != 'task':
@@ -125,6 +133,9 @@ def find_video_dir(session: _session.Session, videoroot: Path) -> Path:
 
 
 def find_video_file(videodir: Path, videotype: str = 'Eye') -> Optional[Path]:
+    videodir = Path(videodir)  # just in case
+    if not videodir.exists():
+        return None
     candidates = list(videodir.glob(f'*_{videotype}_*.mp4'))
     if len(candidates) > 1:
         raise ValueError(f"{videodir.name}: {len(candidates)} candidates found for '{videotype}'")

@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Dict, Generator
+from typing import Optional, Iterator, ClassVar
 from pathlib import Path
-from collections import namedtuple as _namedtuple
+from dataclasses import dataclass
 from datetime import datetime as _datetime
 import re as _re
 
@@ -30,6 +30,7 @@ import pandas as _pd
 
 from . import (
     core as _core,
+    env as _env,
 )
 
 PathLike = _core.PathLike
@@ -43,13 +44,13 @@ def parse_animal_ID(anifile: Path) -> int:
     return int(grab.group(1))
 
 
-class Availability(_namedtuple('Availability', (
-    'rawdata',  # Optional[bool]
-    'bodyvideo',  # Optional[bool]
-    'facevideo',  # Optional[bool]
-    'eyevideo',  # Optional[bool]
-))):
-    VIDEO_VIEWS = ('body', 'face', 'eye')
+@dataclass
+class Availability:
+    rawdata: Optional[bool]
+    bodyvideo: Optional[bool]
+    facevideo: Optional[bool]
+    eyevideo: Optional[bool]
+    VIDEO_VIEWS: ClassVar[tuple[str]] = ('body', 'face', 'eye')
 
     def has_rawdata(self) -> bool:
         return (self.rawdata is not None) and (self.rawdata == True)
@@ -62,25 +63,25 @@ class Availability(_namedtuple('Availability', (
         return any(self.has_video(view) for view in self.VIDEO_VIEWS)
 
 
-class Session(_namedtuple('Session', (
-    'batch',  # str
-    'animal',  # str
-    'date',  # datetime
-    'type',  # str
-    'dayindex',  # int
-    'sessionindex',  # int
-    'availability',  # Availability
-    'description',  # str
-    'comments',  # str
-))):
-    FMT_SHORT_DATE = '%y%m%d'
-    FMT_LONG_DATE  = '%Y-%m-%d'
-    SHORT_TYPES = {
+@dataclass
+class Session:
+    batch: str
+    animal: str
+    date: _datetime
+    type: str
+    dayindex: int
+    sessionindex: int
+    availability: Availability
+    description: str
+    comments: str
+    FMT_SHORT_DATE: ClassVar[str] = '%y%m%d'
+    FMT_LONG_DATE: ClassVar[str]  = '%Y-%m-%d'
+    SHORT_TYPES: ClassVar[dict[str, str]] = {
         'task': 'task',
         'resting-state': 'rest',
         'sensory-stim': 'ss',
     }
-    LONG_TYPES = {
+    LONG_TYPES: ClassVar[dict[str, str]] = {
         'task': 'task',
         'rest': 'resting-state',
         'ss': 'sensory-stim',
@@ -147,7 +148,7 @@ class Session(_namedtuple('Session', (
     def has_eyevideo(self) -> bool:
         return self.availability.has_video('eye')
 
-    def metadata(self) -> Dict[str, str]:
+    def metadata(self) -> dict[str, str]:
         return {
             'batch': self.batch,
             'animal': self.animal,
@@ -164,19 +165,22 @@ class Session(_namedtuple('Session', (
         }
 
 
-def iterate_sessions(
-    sessroot: PathLike,
-) -> Generator[Session, None, None]:
+def iterate_sessions_from_root(
+    sessroot: Optional[PathLike],
+    animal_strain: Optional[str] = None,
+) -> Iterator[Session]:
+    sessroot = _env.sessions_root_dir(sessroot)
+    animal_strain = _env.animal_strain_ID(animal_strain)
     for batchdir in sorted(Path(sessroot).glob("run*")):
         batch = batchdir.stem
-        for anifile in sorted(batchdir.glob("VG1-GC*.csv"), key=parse_animal_ID):
+        for anifile in sorted(batchdir.glob(f"{animal_strain}*.csv"), key=parse_animal_ID):
             yield from iterate_sessions_from_animal(anifile, batch=batch)
 
 
 def iterate_sessions_from_animal(
     anifile: Path,
     batch: str,
-) -> Generator[Session, None, None]:
+) -> Iterator[Session]:
     animal = anifile.stem
     records = _pd.read_csv(str(anifile), sep=',', header=0)
     for (date,), sessions in records.groupby(['Date']):

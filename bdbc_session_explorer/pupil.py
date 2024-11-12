@@ -23,10 +23,9 @@
 from typing import Optional
 from pathlib import Path
 
-import pupilfitting as _pupf
-
 from . import (
     core as _core,
+    env as _env,
     session as _session,
     dlc as _dlc,
 )
@@ -66,7 +65,21 @@ def process_eye_file(
     desc: str = 'fitting',
     verbose: bool = True,
 ):
-    pupil = _pupf.fit_hdf(
+    try:
+        import pupilfitting as pupf
+        err = ''
+    except ImportError as e:
+        import sys
+        err = str(e)
+        pupf = None
+    if pupf is None:
+        raise RuntimeError(
+            f"***failed to load 'ks-pupilfitting' package ({err}): pupil fitting cannot be performed",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    pupil = pupf.fit_hdf(
         eyefile,
         likelihood_threshold=likelihood_threshold,
         min_valid_points=min_valid_points,
@@ -78,19 +91,30 @@ def process_eye_file(
     pupil.to_hdf(str(pupilfile), key='df_with_missing')
 
 
-def find_pupil_output_dir(session: _session.Session, pupilroot: Path) -> Path:
+def find_pupil_output_dir(session: _session.Session, pupilroot: Optional[Path]) -> Path:
+    pupilroot = _env.pupilfitting_root_dir(pupilroot)
     basename = f"{session.shortdate}_{session.animal}"
     if session.type != 'task':
         basename += f"_{session.shorttype}"
-    return pupilroot / basename
+    return pupilroot / session.shortdate / basename
 
 
 def locate_pupil_file(
     session: _session.Session,
-    pupilroot: Path,
+    pupilroot: Optional[Path],
     locate_without_eyevideo: bool = False,
 ) -> Optional[Path]:
     if not session.has_eyevideo() and (not locate_without_eyevideo):
         return None
+    pupilroot = _env.pupilfitting_root_dir(pupilroot)
     pupildir = find_pupil_output_dir(session, pupilroot)
-    return pupildir / f"{session.shortdate}_{session.animal}_pupilfitting.h5"
+    if not pupildir.exists():
+        _core.message(f"***directory does not exist: {pupildir}")
+        return None
+    candidates = tuple(pupildir.glob("*_pupilfitting.h5"))
+    if len(candidates) > 1:
+        raise ValueError(f"{pupildir.name}: {len(candidates)} candidates found for 'pupil'")
+    elif len(candidates) == 0:
+        _core.message(f"***file with pattern not found in: {pupildir}")
+        return None
+    return candidates[0]
