@@ -44,6 +44,7 @@ _reload(pupil)
 _reload(mesoscaler)
 _reload(find)
 
+Availability = session.Availability
 Session = session.Session
 RawData = rawdata.RawData
 RawFileVersion = rawdata.RawFileVersion
