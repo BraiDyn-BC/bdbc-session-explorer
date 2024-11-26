@@ -30,8 +30,10 @@ from . import (
 
 PathLike = _core.PathLike
 
+
 def iterate_sessions(
     animal: Optional[str] = None,
+    batch: Optional[str] = None,
     fromdate: Optional[str] = None,
     todate: Optional[str] = None,
     type: Optional[str] = None,
@@ -39,11 +41,12 @@ def iterate_sessions(
     verbose: bool = True
 ) -> Iterator[_session.Session]:
     is_animal = matcher.animal(animal)
+    is_batch = matcher.batch(batch)
     is_date = matcher.date(from_date=fromdate, to_date=todate)
     is_type = matcher.session_type(type)
 
     def _matches(session: _session.Session) -> bool:
-        return is_animal(session.animal) and is_date(session.date) and is_type(session.type)
+        return is_animal(session.animal) and is_batch(session.batch) and is_date(session.date) and is_type(session.type)
 
     sessions_root_dir = _env.sessions_root_dir(sessions_root_dir)
     _core.message(f"...SESSIONS_ROOT_DIR={repr(str(sessions_root_dir))}", verbose=verbose)
@@ -66,6 +69,18 @@ class matcher:
 
     @staticmethod
     def animal(ref: Optional[str]) -> Callable[[str], bool]:
+        if ref is None:
+            return matcher.matches_all
+        else:
+            refs = tuple(item.strip() for item in ref.split(','))
+
+            def match(query: str) -> bool:
+                return (query in refs)
+
+            return match
+
+    @staticmethod
+    def batch(ref: Optional[str]) -> Callable[[str], bool]:
         if ref is None:
             return matcher.matches_all
         else:
