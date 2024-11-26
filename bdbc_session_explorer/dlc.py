@@ -220,10 +220,12 @@ def dlc_output_files_from_session(
 
 
 def find_dlc_output_dir(session: _session.Session, dlcroot: Path) -> Path:
+    shortdate = session.shortdate
     basename = f"{session.shortdate}_{session.animal}"
     if session.type != 'task':
+        shortdate += f"_{session.shorttype}"
         basename += f"_{session.shorttype}"
-    return dlcroot / session.shortdate / basename
+    return dlcroot / shortdate / basename
 
 
 def find_dlc_output(dlcdir: Path, dtype: str = 'eye', label: str = 'Eye') -> Optional[Path]:

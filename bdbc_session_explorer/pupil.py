@@ -93,10 +93,13 @@ def process_eye_file(
 
 def find_pupil_output_dir(session: _session.Session, pupilroot: Optional[Path]) -> Path:
     pupilroot = _env.pupilfitting_root_dir(pupilroot)
-    basename = f"{session.shortdate}_{session.animal}"
+    shortdate = session.shortdate
+    basename = f"{shortdate}_{session.animal}"
     if session.type != 'task':
-        basename += f"_{session.shorttype}"
-    return pupilroot / session.shortdate / basename
+        suffix = f"_{session.shorttype}"
+        shortdate += suffix
+        basename += suffix
+    return pupilroot / shortdate / basename
 
 
 def locate_pupil_file(
