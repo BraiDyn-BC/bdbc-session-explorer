@@ -20,9 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional
+"""retrieves values from the environment.
+
+The default values may be supplied from environment variables:
+- BDBC_SESSION_ROOT: root directory for session metadata files
+- BDBC_RAWDATA_ROOT: root directory for raw-data HDF files
+- BDBC_VIDEOS_ROOT: root directory for video files
+- BDBC_MESOSCALER_ROOT: root directory for mesoscaler (atlas registration) files
+- BDBC_<view>MODEL_DIR: the DeepLabCut project directory for <view> (body/face/eye) model
+- BDBC_<view>RESULTS_ROOT: root directory for DeepLabCut results files of <view> (body/face/eye) model
+- BDBC_PUPILFITTING_ROOT: root directory for pupil-fitting results files
+- BDBC_PUBLICATION_ROOT: root directory for the resulting NWB files
+
+Some values may also be overridden by additional environment variables
+(by default, the metadata from BDBC_SESSION_ROOT will be used):
+- BDBC_ANIMAL_STRAIN: the animal strain used for the experiments
+- BDBC_TASK_TYPE: the type of the task
+"""
+
+from typing import Optional, Any
 from pathlib import Path
 import os as _os
+import json as _json
 
 from . import (
     core as _core,
@@ -40,19 +59,44 @@ VIDEO_VIEWS = {
 }
 
 
-def animal_strain_ID(strain: Optional[str] = None) -> str:
+GeneralInfo = dict[str, str]
+TrialSpec = dict[str, Any]
+TrialSpecSet = dict[str, TrialSpec]
+
+
+def animal_strain_prefix(
+    strain: Optional[str] = None,
+    general_info: Optional[GeneralInfo] = None,
+    sessionroot: Optional[PathLike] = None,
+) -> str:
     if strain is None:
-        strain = _os.environ.get('BDBC_ANIMAL_STRAIN', 'VG1-GC')
-        if strain is None:
-            raise ValueError("specify 'animal_strain' or the BDBC_ANIMAL_STRAIN environment variable")
+        strain = _os.environ.get('BDBC_ANIMAL_STRAIN', None)
+    if strain is None:
+        try:
+            general_info = get_general_info(general_info, sessionroot)
+            strain = general_info['animal_strain_prefix']
+        except FileNotFoundError:
+            pass
+    if strain is None:
+        raise ValueError("specify 'animal_strain', specify the BDBC_ANIMAL_STRAIN environment variable, or define metadata/general.json under BDBC_SESSION_ROOT")
     return str(strain)
 
 
-def task_type(tasktype: Optional[str] = None) -> str:
+def task_type(
+    tasktype: Optional[str] = None,
+    general_info: Optional[GeneralInfo] = None,
+    sessionroot: Optional[PathLike] = None
+) -> str:
     if tasktype is None:
-        tasktype = _os.environ.get('BDBC_TASK_TYPE', 'cued-lever-pull')
-        if tasktype is None:
-            raise ValueError("specify 'tasktype' or the BDBC_TASK_TYPE environment variable")
+        tasktype = _os.environ.get('BDBC_TASK_TYPE', None)
+    if tasktype is None:
+        try:
+            general_info = get_general_info(general_info, sessionroot)
+            tasktype = general_info['task_type']
+        except FileNotFoundError:
+            pass
+    if tasktype is None:
+        raise ValueError("specify 'tasktype', specify the BDBC_TASK_TYPE environment variable, or define metadata/general.json under BDBC_SESSION_ROOT")
     return str(tasktype)
 
 
@@ -138,3 +182,36 @@ def publication_root_dir(nwbroot: Optional[PathLike] = None) -> Path:
         envname='BDBC_PUBLICATION_ROOT',
         root=nwbroot
     )
+
+
+def get_general_info(
+    info: Optional[GeneralInfo] = None,
+    sessionroot: Optional[PathLike] = None,
+) -> GeneralInfo:
+    if info is None:
+        sessroot = sessions_root_dir(sessionroot)
+        infofile = sessroot / "metadata" / "general.json"
+        if not infofile.exists():
+            raise FileNotFoundError(str(infofile))
+        with open(infofile, 'r') as src:
+            info = _json.load(src)
+    return info
+
+
+def get_trials_metadata(
+    metadata: Optional[TrialSpecSet] = None,
+    sessionroot: Optional[PathLike] = None
+) -> TrialSpecSet:
+    if metadata is None:
+        sessroot = sessions_root_dir(sessionroot)
+        trialspec_dir = sessroot / "metadata" / "trials"
+        if not trialspec_dir.exists():
+            raise FileNotFoundError(str(trialspec_dir))
+
+        metadata = {}
+        for specfile in trialspec_dir.glob('*.json'):
+            with open(specfile, 'r') as src:
+                metadata[specfile.stem] = _json.load(src)
+        if "task" not in metadata.keys():
+            raise KeyError(f"'task' trial type not found in: {str(trialspec_dir)}")
+    return metadata

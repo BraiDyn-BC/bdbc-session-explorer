@@ -44,6 +44,10 @@ _reload(pupil)
 _reload(mesoscaler)
 _reload(find)
 
+GeneralInfo = env.GeneralInfo
+TrialSpec = env.TrialSpec
+TrialSpecSet = env.TrialSpecSet
+
 Availability = session.Availability
 Session = session.Session
 RawData = rawdata.RawData
@@ -61,7 +65,9 @@ locate_pupil_file = pupil.locate_pupil_file
 fit_pupil = pupil.fit_pupil
 locate_mesoscaler_file = mesoscaler.locate_mesoscaler_file
 
-animal_strain_ID = env.animal_strain_ID
+get_general_info = env.get_general_info
+get_trials_metadata = env.get_trials_metadata
+animal_strain_prefix = env.animal_strain_prefix
 task_type = env.task_type
 sessions_root_dir = env.sessions_root_dir
 rawdata_root_dirs = env.rawdata_root_dirs

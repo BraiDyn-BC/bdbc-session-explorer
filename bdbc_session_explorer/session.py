@@ -72,8 +72,9 @@ class Session:
     dayindex: int
     sessionindex: int
     availability: Availability
-    description: str
-    comments: str
+    trialspec: Optional[_env.TrialSpec] = None
+    description: str = ''
+    comments: str = ''
     FMT_SHORT_DATE: ClassVar[str] = '%y%m%d'
     FMT_LONG_DATE: ClassVar[str]  = '%Y-%m-%d'
     SHORT_TYPES: ClassVar[dict[str, str]] = {
@@ -168,18 +169,21 @@ class Session:
 def iterate_sessions_from_root(
     sessroot: Optional[PathLike],
     animal_strain: Optional[str] = None,
+    metadata: Optional[_env.TrialSpecSet] = None,
 ) -> Iterator[Session]:
     sessroot = _env.sessions_root_dir(sessroot)
+    metadata = _env.get_trials_metadata(metadata=metadata, sessionroot=sessroot)
     animal_strain = _env.animal_strain_ID(animal_strain)
     for batchdir in sorted(Path(sessroot).glob("run*")):
         batch = batchdir.stem
         for anifile in sorted(batchdir.glob(f"{animal_strain}*.csv"), key=parse_animal_ID):
-            yield from iterate_sessions_from_animal(anifile, batch=batch)
+            yield from iterate_sessions_from_animal(anifile, batch=batch, metadata=metadata)
 
 
 def iterate_sessions_from_animal(
     anifile: Path,
     batch: str,
+    metadata: _env.TrialSpecSet,
 ) -> Iterator[Session]:
     animal = anifile.stem
     records = _pd.read_csv(str(anifile), sep=',', header=0)
@@ -187,6 +191,7 @@ def iterate_sessions_from_animal(
         date = _datetime.strptime(date, Session.FMT_LONG_DATE)
         for i, (_, row) in enumerate(sessions.iterrows(), start=1):
             yield format_session_record(
+                metadata,
                 row,
                 batch=batch,
                 animal=animal,
@@ -196,12 +201,14 @@ def iterate_sessions_from_animal(
 
 
 def format_session_record(
+    metadata: _env.TrialSpecSet,
     row: _pd.Series,
     batch: str = 'NA',
     animal: str = 'NA',
     date: Optional[_datetime] = None,
     sessionindex: int = 0,
 ) -> Session:
+    sessiontype = str(row.Type)
     descs = tuple(item.strip() for item in row.Description.split(';'))
     desc = descs[0]
     comm = '; '.join(descs[1:]) if len(descs) > 1 else ''
@@ -215,10 +222,11 @@ def format_session_record(
         batch=batch,
         animal=animal,
         date=date,
-        type=str(row.Type),
+        type=sessiontype,
         dayindex=int(row.Day),
         sessionindex=sessionindex,
         availability=avail,
         description=desc,
         comments=comm,
+        trialspec=metadata.get(sessiontype, None),
     )
