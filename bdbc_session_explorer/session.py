@@ -173,7 +173,7 @@ def iterate_sessions_from_root(
 ) -> Iterator[Session]:
     sessroot = _env.sessions_root_dir(sessroot)
     metadata = _env.get_trials_metadata(metadata=metadata, sessionroot=sessroot)
-    animal_strain = _env.animal_strain_ID(animal_strain)
+    animal_strain = _env.animal_strain_prefix(animal_strain)
     for batchdir in sorted(Path(sessroot).glob("run*")):
         batch = batchdir.stem
         for anifile in sorted(batchdir.glob(f"{animal_strain}*.csv"), key=parse_animal_ID):
