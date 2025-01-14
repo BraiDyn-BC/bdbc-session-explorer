@@ -130,8 +130,10 @@ def rawdata_root_dirs(rawroot: Optional[PathsLike] = None) -> tuple[Path]:
         if rawroot is None:
             raise ValueError("specify `rawroot` or the BDBC_RAWDATA_ROOT environment variable")
         return tuple(Path(item) for item in str(rawroot).split(PATHSEP) if len(item) > 0)
-    elif isinstance(rawroot, (str, Path)):
+    elif isinstance(rawroot, str):
         return tuple(Path(item) for item in str(rawroot).split(PATHSEP) if len(item) > 0)
+    elif isinstance(rawroot, Path):
+        return (rawroot,)
     else:
         return tuple(Path(item) for item in rawroot)
 
