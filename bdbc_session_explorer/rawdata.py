@@ -38,7 +38,7 @@ PathLike = _core.PathLike
 RawFileVersion = Literal['v0', 'v1', 'v2']
 ImageChannel = Literal['green', 'blue']
 
-DEFAULT_FILE_VERSION = 'v1'
+DEFAULT_FILE_VERSION = 'v2'
 
 # FIXME: want to write _npt.NDArray[Tuple[int, int], _np.float32]
 # # but it somehow results in an error in a certain case...
