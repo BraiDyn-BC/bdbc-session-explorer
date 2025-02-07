@@ -109,7 +109,7 @@ def video_files_from_session(
         return VideoFiles.empty(session)
     videos = dict()
     for vtype, vlab in _env.video_views().items():
-        if session.availability.has_video(vtype):
+        if force_search or session.availability.has_video(vtype):
             vpath = find_video_file(videodir=videodir, videotype=vlab)
             if (vpath is None) or (not vpath.exists()):
                 _core.handle_error(
