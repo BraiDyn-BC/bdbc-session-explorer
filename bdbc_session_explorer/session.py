@@ -187,7 +187,13 @@ def iterate_sessions_from_animal(
 ) -> Iterator[Session]:
     animal = anifile.stem
     records = _pd.read_csv(str(anifile), sep=',', header=0)
-    for (date,), sessions in records.groupby(['Date']):
+    for date, sessions in records.groupby(['Date']):
+        # NOTE: a dirty fix for compatibility with pandas 1.x (probably)
+        # in 2.x, the first item should always be a tuple,
+        # whereas a single object (`str`, in this case) will be used
+        # in 1.x
+        if isinstance(date, tuple):
+            date = date[0]
         date = _datetime.strptime(date, Session.FMT_LONG_DATE)
         for i, (_, row) in enumerate(sessions.iterrows(), start=1):
             yield format_session_record(
